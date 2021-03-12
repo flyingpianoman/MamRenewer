@@ -34,6 +34,7 @@ namespace MamRenewer
                 {
                     cb.AddEnvironmentVariables();
                     cb.AddJsonFile("appsettings.json");
+                    cb.AddJsonFile("appsettings.localdev.json");
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
@@ -46,8 +47,14 @@ namespace MamRenewer
                             };
                         });
 
-                    services.AddHangfire(c => c.UseSQLiteStorage(hostContext.Configuration.GetConnectionString("HangfireConnection")));
-                    services.AddHangfireServer();
+                    services.AddHangfire(c =>
+                    {
+                        c.UseSQLiteStorage(hostContext.Configuration.GetConnectionString("HangfireConnection"));
+                    });
+                    services.AddHangfireServer(o =>
+                    {
+                        o.WorkerCount = 1;
+                    });
 
                     services.AddTransient<SignInToMamJob>();
                     services.AddTransient<PreviousJobInfoRepository>();
