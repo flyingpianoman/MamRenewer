@@ -32,10 +32,10 @@ namespace MamRenewer
             Directory.CreateDirectory(configuration.GetValue<string>("MamBot:ScreenshotDir"));
 
             var recurringJobManager = host.Services.GetRequiredService<Hangfire.IRecurringJobManager>();
-            recurringJobManager.AddOrUpdate<SignInToMamJob>(nameof(SignInToMamJob),
-                job => job.ExecuteAsync(), Cron.Minutely());
-            recurringJobManager.AddOrUpdate<RenewMamVipJob>(nameof(SignInToMamJob),
+            recurringJobManager.AddOrUpdate<RenewMamVipJob>(nameof(RenewMamVipJob),
                 job => job.ExecuteAsync(), Cron.Weekly());
+            recurringJobManager.AddOrUpdate<RefreshMamIPJob>(nameof(RefreshMamIPJob),
+                job => job.ExecuteAsync(), Cron.Minutely());
 
             return host.RunAsync();
         }
@@ -74,8 +74,8 @@ namespace MamRenewer
                         o.WorkerCount = 1;
                     });
 
-                    services.AddTransient<SignInToMamJob>();
                     services.AddTransient<RenewMamVipJob>();
+                    services.AddTransient<RefreshMamIPJob>();
                     services.AddTransient<PreviousJobInfoRepository>();
                     services.AddTransient<MamBot>();
                     services.AddTransient<ScreenShotter>();

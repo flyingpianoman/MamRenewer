@@ -11,49 +11,33 @@ using System.Threading.Tasks;
 
 namespace MamRenewer.Jobs
 {
-    class RenewMamVipJob : JobBase<SignInToMamJob>
+    class RenewMamVipJob : JobBase<RenewMamVipJob>
     {
-        private PreviousJobInfoRepository _previousJobInfoRepository;
         private readonly MamBot _mamBot;
 
-        public RenewMamVipJob(PreviousJobInfoRepository previousJobInfoRepository,
-            IHttpClientFactory httpClientFactory,
+        public RenewMamVipJob(IHttpClientFactory httpClientFactory,
             MamBot mamBot,
-            ILogger<SignInToMamJob> logger,
+            ILogger<RenewMamVipJob> logger,
             IConfiguration configuration)
             : base(httpClientFactory, logger, configuration)
         {
-            _previousJobInfoRepository = previousJobInfoRepository;
             _mamBot = mamBot;
         }
 
         public async Task ExecuteAsync()
         {
+            _logger.LogInformation("Renewing MAM vip status");
             var client = _httpClientFactory.CreateClient(Program.ProxiedHttpClientName);
-            var currentExternalIP = await GetCurrentIPAsync(client);
 
             if (_proxyEnabled)
             {
+                var currentExternalIP = await GetCurrentIPAsync(client);
                 await ValidateProxiedIPAsync(currentExternalIP);
             }
 
-            var lastUsedIp = _previousJobInfoRepository.RetrieveLastUsedIP();
-            _logger.LogDebug("Current external IP is '{0}'", currentExternalIP);
+            await _mamBot.RenewVipStatusAsync();
 
-            if (currentExternalIP == lastUsedIp)
-            {
-                _logger.LogDebug("Current external IP is equal to the last used ip, skipping login");
-                return;
-            }
-
-            _logger.LogInformation("Current external IP '{0}' differs from last used IP {1}. Logging in to MAM to update IP",
-                currentExternalIP, lastUsedIp);
-
-            await _mamBot.RefreshIPAsync();
-
-            _logger.LogInformation("IP refreshed");
-
-            _previousJobInfoRepository.UpdateLastUsedIP(currentExternalIP);
+            _logger.LogInformation("MAM vip status renewed");
         }
     }
 }
