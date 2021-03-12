@@ -3,7 +3,9 @@ using Hangfire.Common;
 using Hangfire.Storage.SQLite;
 using MamRenewer.Jobs;
 using MamRenewer.Mam;
+using MamRenewer.Mam.Pages;
 using MamRenewer.Services;
+using MamRenewer.UINavigation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,11 +29,13 @@ namespace MamRenewer
 
             //Create dir for screenshots
             var configuration = host.Services.GetRequiredService<IConfiguration>();
-            Directory.CreateDirectory(configuration.GetValue<string>("Selenium:ScreenshotDir"));
+            Directory.CreateDirectory(configuration.GetValue<string>("MamBot:ScreenshotDir"));
 
             var recurringJobManager = host.Services.GetRequiredService<Hangfire.IRecurringJobManager>();
-            recurringJobManager.AddOrUpdate<SignInToMamJob>(nameof(SignInToMamJob), 
+            recurringJobManager.AddOrUpdate<SignInToMamJob>(nameof(SignInToMamJob),
                 job => job.ExecuteAsync(), Cron.Minutely());
+            recurringJobManager.AddOrUpdate<RenewMamVipJob>(nameof(SignInToMamJob),
+                job => job.ExecuteAsync(), Cron.Weekly());
 
             return host.RunAsync();
         }
@@ -40,9 +44,9 @@ namespace MamRenewer
             Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration(cb =>
                 {
-                    cb.AddEnvironmentVariables();
                     cb.AddJsonFile("appsettings.json");
                     cb.AddJsonFile("appsettings.localdev.json");
+                    cb.AddEnvironmentVariables();
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
@@ -71,14 +75,19 @@ namespace MamRenewer
                     });
 
                     services.AddTransient<SignInToMamJob>();
+                    services.AddTransient<RenewMamVipJob>();
                     services.AddTransient<PreviousJobInfoRepository>();
                     services.AddTransient<MamBot>();
+                    services.AddTransient<ScreenShotter>();
+                    services.AddTransient<LoginPage>();
+                    services.AddTransient<HomePage>();
+                    services.AddTransient<StorePage>();
 
-                    services.AddTransient<IWebDriver>(sp =>
+                    services.AddSingleton<IWebDriver>(sp =>
                     {
                         var configuration = sp.GetRequiredService<IConfiguration>();
                         var capabilities = new OpenQA.Selenium.Firefox.FirefoxOptions().ToCapabilities();
-                        return new RemoteWebDriver(configuration.GetValue<Uri>("Selenium:SeleniumHubAddress"), capabilities);
+                        return new RemoteWebDriver(configuration.GetValue<Uri>("MamBot:SeleniumHubAddress"), capabilities);
                     });
                 })
                 .UseConsoleLifetime();

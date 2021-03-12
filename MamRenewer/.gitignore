@@ -1,5 +1,2 @@
-#db files
-data/*.db
-
 #local test config files
 appsettings.localdev.json

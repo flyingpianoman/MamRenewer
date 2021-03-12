@@ -11,67 +11,35 @@ using System.Threading.Tasks;
 
 namespace MamRenewer.Jobs
 {
-    class SignInToMamJob
+    class SignInToMamJob : JobBase<SignInToMamJob>
     {
-        private PreviousJobInfoRepository _previousJobInfoRepository;
-        private IHttpClientFactory _httpClientFactory;
         private readonly MamBot _mamBot;
-        private ILogger<SignInToMamJob> _logger;
-        private readonly bool _proxyEnabled;
 
-        public SignInToMamJob(PreviousJobInfoRepository previousJobInfoRepository,
-            IHttpClientFactory httpClientFactory,
+        public SignInToMamJob(IHttpClientFactory httpClientFactory,
             MamBot mamBot,
             ILogger<SignInToMamJob> logger,
             IConfiguration configuration)
+            : base(httpClientFactory, logger, configuration)
         {
-            _previousJobInfoRepository = previousJobInfoRepository;
-            _httpClientFactory = httpClientFactory;
             _mamBot = mamBot;
-            _logger = logger;
-            _proxyEnabled = configuration.GetValue<bool>("Proxy:Enabled");
         }
 
         public async Task ExecuteAsync()
         {
+            _logger.LogInformation("Renewing MAM vip status");
             var client = _httpClientFactory.CreateClient(Program.ProxiedHttpClientName);
-            var currentExternalIP = await GetCurrentIPAsync(client);
 
             if (_proxyEnabled)
             {
+                var currentExternalIP = await GetCurrentIPAsync(client);
                 await ValidateProxiedIPAsync(currentExternalIP);
             }
 
-            var lastUsedIp = _previousJobInfoRepository.RetrieveLastUsedIP();
-            _logger.LogDebug("Current external IP is '{0}'", currentExternalIP);
+            await _mamBot.RenewVipStatusAsync();
 
-            if (currentExternalIP == lastUsedIp)
-            {
-                _logger.LogDebug("Current external IP is equal to the last used ip, skipping login");
-                return;
-            }
-
-            _logger.LogInformation("Current external IP '{0}' differs from last used IP {1}. Logging in to MAM to update IP",
-                currentExternalIP, lastUsedIp);
+            _logger.LogInformation("MAM vip status renewed");
 
             _previousJobInfoRepository.UpdateLastUsedIP(currentExternalIP);
-        }
-
-        private async Task ValidateProxiedIPAsync(string currentExternalIP)
-        {
-            var unproxiedClient = _httpClientFactory.CreateClient();
-            var currentExternalUnproxiedIP = await GetCurrentIPAsync(unproxiedClient);
-
-            if (currentExternalUnproxiedIP == currentExternalIP)
-            {
-                _logger.LogWarning("Current external IP is the same as an unproxied IP '{0}', failing", currentExternalIP);
-                throw new InvalidOperationException("Current external IP is the same as an unproxied IP, stopping");
-            }
-        }
-
-        private static async Task<string> GetCurrentIPAsync(HttpClient client)
-        {
-            return (await client.GetStringAsync("http://ipinfo.io/ip")).Trim();
         }
     }
 }
