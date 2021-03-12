@@ -2,11 +2,15 @@
 using Hangfire.Common;
 using Hangfire.Storage.SQLite;
 using MamRenewer.Jobs;
+using MamRenewer.Mam;
 using MamRenewer.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Remote;
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -20,7 +24,11 @@ namespace MamRenewer
         public static Task Main(string[] args)
         {
             var host = CreateHostBuilder(args).Build();
-            
+
+            //Create dir for screenshots
+            var configuration = host.Services.GetRequiredService<IConfiguration>();
+            Directory.CreateDirectory(configuration.GetValue<string>("Selenium:ScreenshotDir"));
+
             var recurringJobManager = host.Services.GetRequiredService<Hangfire.IRecurringJobManager>();
             recurringJobManager.AddOrUpdate<SignInToMamJob>(nameof(SignInToMamJob), 
                 job => job.ExecuteAsync(), Cron.Minutely());
@@ -41,10 +49,16 @@ namespace MamRenewer
                     services.AddHttpClient(ProxiedHttpClientName)
                         .ConfigurePrimaryHttpMessageHandler(() =>
                         {
-                            return new HttpClientHandler
-                            {
-                                Proxy = new WebProxy(hostContext.Configuration.GetValue<string>("Proxy:Address"))
-                            };
+                            var c = hostContext.Configuration;
+                            var proxyEnabled = c.GetValue<bool>("Proxy:Enabled");
+                            var address = c.GetValue<string>("Proxy:Address");
+
+                            return proxyEnabled
+                                ? new HttpClientHandler
+                                    {
+                                        Proxy = new WebProxy(address)
+                                    }
+                                : new HttpClientHandler();
                         });
 
                     services.AddHangfire(c =>
@@ -58,6 +72,14 @@ namespace MamRenewer
 
                     services.AddTransient<SignInToMamJob>();
                     services.AddTransient<PreviousJobInfoRepository>();
+                    services.AddTransient<MamBot>();
+
+                    services.AddTransient<IWebDriver>(sp =>
+                    {
+                        var configuration = sp.GetRequiredService<IConfiguration>();
+                        var capabilities = new OpenQA.Selenium.Firefox.FirefoxOptions().ToCapabilities();
+                        return new RemoteWebDriver(configuration.GetValue<Uri>("Selenium:SeleniumHubAddress"), capabilities);
+                    });
                 })
                 .UseConsoleLifetime();
     }
