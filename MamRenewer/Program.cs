@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Remote;
 using System;
 using System.IO;
@@ -86,7 +87,18 @@ namespace MamRenewer
                     services.AddSingleton<IWebDriver>(sp =>
                     {
                         var configuration = sp.GetRequiredService<IConfiguration>();
-                        var capabilities = new OpenQA.Selenium.Firefox.FirefoxOptions().ToCapabilities();
+                        var proxyEnabled = configuration.GetValue<bool>("Proxy:Enabled");
+                        var address = configuration.GetValue<string>("Proxy:Address");
+
+                        var proxySettings = proxyEnabled
+                            ? new Proxy { HttpProxy = address, SslProxy = address, Kind = ProxyKind.Manual }
+                            : null;
+
+                        var capabilities = new FirefoxOptions()
+                        {
+                            Proxy = proxySettings
+                        }.ToCapabilities();
+
                         return new RemoteWebDriver(configuration.GetValue<Uri>("MamBot:SeleniumHubAddress"), capabilities);
                     });
                 })

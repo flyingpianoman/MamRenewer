@@ -2,6 +2,7 @@
 using MamRenewer.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using OpenQA.Selenium;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,24 +14,26 @@ namespace MamRenewer.Jobs
 {
     class RefreshMamIPJob : JobBase<RenewMamVipJob>
     {
+        private readonly IWebDriver _webDriver;
         private PreviousJobInfoRepository _previousJobInfoRepository;
         private readonly MamBot _mamBot;
 
         public RefreshMamIPJob(PreviousJobInfoRepository previousJobInfoRepository,
             IHttpClientFactory httpClientFactory,
+            IWebDriver webDriver,
             MamBot mamBot,
             ILogger<RenewMamVipJob> logger,
             IConfiguration configuration)
             : base(httpClientFactory, logger, configuration)
         {
+            _webDriver = webDriver;
             _previousJobInfoRepository = previousJobInfoRepository;
             _mamBot = mamBot;
         }
 
         public async Task ExecuteAsync()
         {
-            var client = _httpClientFactory.CreateClient(Program.ProxiedHttpClientName);
-            var currentExternalIP = await GetCurrentIPAsync(client);
+            var currentExternalIP = await GetCurrentIPAsync(_webDriver);
 
             if (_proxyEnabled)
             {
