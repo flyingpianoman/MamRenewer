@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace MamRenewer.Jobs
 {
-    class RefreshMamIPJob : JobBase<RenewMamVipJob>
+    class RefreshMamIPJob : JobBase<RefreshMamIPJob>
     {
         private readonly IWebDriver _webDriver;
         private PreviousJobInfoRepository _previousJobInfoRepository;
