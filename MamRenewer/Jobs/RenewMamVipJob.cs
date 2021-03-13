@@ -30,11 +30,23 @@ namespace MamRenewer.Jobs
 
         public async Task ExecuteAsync()
         {
+            try
+            {
+                await ExecuteCoreAsync();
+            }
+            finally
+            {
+                _webDriver.Quit();
+            }
+        }
+
+        private async Task ExecuteCoreAsync()
+        {
             _logger.LogInformation("Renewing MAM vip status");
 
             if (_proxyEnabled)
             {
-                var currentExternalIP = await GetCurrentIPAsync(_webDriver);
+                var currentExternalIP = GetCurrentIP(_webDriver);
                 await ValidateProxiedIPAsync(currentExternalIP);
             }
 

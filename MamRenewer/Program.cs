@@ -79,12 +79,8 @@ namespace MamRenewer
                     services.AddTransient<RefreshMamIPJob>();
                     services.AddTransient<PreviousJobInfoRepository>();
                     services.AddTransient<MamBot>();
-                    services.AddTransient<ScreenShotter>();
-                    services.AddTransient<LoginPage>();
-                    services.AddTransient<HomePage>();
-                    services.AddTransient<StorePage>();
 
-                    services.AddSingleton<IWebDriver>(sp =>
+                    services.AddTransient<IWebDriver>(sp =>
                     {
                         var configuration = sp.GetRequiredService<IConfiguration>();
                         var proxyEnabled = configuration.GetValue<bool>("Proxy:Enabled");

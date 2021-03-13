@@ -29,7 +29,7 @@ namespace MamRenewer.Jobs
         {
             return (await client.GetStringAsync(_ExternalIPCheckUrl)).Trim();
         }
-        protected static async Task<string> GetCurrentIPAsync(IWebDriver webDriver)
+        protected static string GetCurrentIP(IWebDriver webDriver)
         {
             webDriver.Url = _ExternalIPCheckUrl;
             webDriver.Navigate();

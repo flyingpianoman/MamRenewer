@@ -17,37 +17,27 @@ namespace MamRenewer.Mam
         private readonly IWebDriver _webDriver;
         private readonly string _username;
         private readonly string _password;
-        private readonly LoginPage _loginPage;
-        private readonly HomePage _homePage;
-        private readonly StorePage _storePage;
         private readonly ScreenShotter _screenShotter;
 
         public MamBot(IWebDriver webDriver, 
-            IConfiguration configuration,
-            LoginPage loginPage,
-            HomePage homePage,
-            StorePage storePage,
-            ScreenShotter screenShotter)
+            IConfiguration configuration)
         {
             _webDriver = webDriver;
             _username = configuration.GetValue<string>("MamBot:Mam:Username");
             _password = configuration.GetValue<string>("MamBot:Mam:Password");
-            _loginPage = loginPage;
-            _homePage = homePage;
-            _storePage = storePage;
-            _screenShotter = screenShotter;
+            _screenShotter = new ScreenShotter(_webDriver, configuration);
         }
 
         public async Task RefreshIPAsync()
         {
-            LoadFreshMamUrl();
+            LoadMam();
 
             await LoginAsync();
         }
 
         public async Task RenewVipStatusAsync()
         {
-            LoadFreshMamUrl();
+            LoadMam();
 
             await LoginAsync();
 
@@ -58,33 +48,35 @@ namespace MamRenewer.Mam
             _screenShotter.TakeScreenshot("vipPurchase");
         }
 
-        private void LoadFreshMamUrl()
+        private void LoadMam()
         {
-            _webDriver.Manage().Cookies.DeleteAllCookies();
             _webDriver.Url = _mamUrl;
             _webDriver.Navigate();
         }
 
         private async Task LoginAsync()
         {
-            await _loginPage.InitializeAsync(_webDriver);
-            _loginPage.SetUserName(_username);
-            _loginPage.SetPassword(_password);
+            var loginPage = new LoginPage();
+            await loginPage.InitializeAsync(_webDriver);
+            loginPage.SetUserName(_username);
+            loginPage.SetPassword(_password);
 
-            _loginPage.ClickLogin();
+            loginPage.ClickLogin();
         }
 
         private async Task NavigateToBonusPointsAsync()
         {
-            await _homePage.InitializeAsync(_webDriver);
-            _homePage.NavigateToBonusPoints();
+            var homePage = new HomePage();
+            await homePage.InitializeAsync(_webDriver);
+            homePage.NavigateToBonusPoints();
         }
 
         private async Task PurchaseMaxVipDutationAsync()
         {
-            await _storePage.InitializeAsync(_webDriver);
-            _storePage.ToggleVipSection();
-            _storePage.PurchaseMaxVipDuration();
+            var storePage = new StorePage();
+            await storePage.InitializeAsync(_webDriver);
+            storePage.ToggleVipSection();
+            storePage.PurchaseMaxVipDuration();
         }
     }
 }

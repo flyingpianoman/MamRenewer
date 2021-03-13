@@ -15,7 +15,7 @@ namespace MamRenewer.Jobs
     class RefreshMamIPJob : JobBase<RefreshMamIPJob>
     {
         private readonly IWebDriver _webDriver;
-        private PreviousJobInfoRepository _previousJobInfoRepository;
+        private readonly PreviousJobInfoRepository _previousJobInfoRepository;
         private readonly MamBot _mamBot;
 
         public RefreshMamIPJob(PreviousJobInfoRepository previousJobInfoRepository,
@@ -33,7 +33,19 @@ namespace MamRenewer.Jobs
 
         public async Task ExecuteAsync()
         {
-            var currentExternalIP = await GetCurrentIPAsync(_webDriver);
+            try
+            {
+                await ExecuteCoreAsync();
+            }
+            finally
+            {
+                _webDriver.Quit();
+            }
+        }
+
+        private async Task ExecuteCoreAsync()
+        {
+            var currentExternalIP = GetCurrentIP(_webDriver);
 
             if (_proxyEnabled)
             {
