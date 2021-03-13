@@ -22,7 +22,7 @@ namespace MamRenewer.Jobs
             IHttpClientFactory httpClientFactory,
             IWebDriver webDriver,
             MamBot mamBot,
-            ILogger<RenewMamVipJob> logger,
+            ILogger<RefreshMamIPJob> logger,
             IConfiguration configuration)
             : base(httpClientFactory, logger, configuration)
         {
