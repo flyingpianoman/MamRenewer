@@ -46,7 +46,7 @@ namespace MamRenewer
                 .ConfigureAppConfiguration(cb =>
                 {
                     cb.AddJsonFile("appsettings.json");
-                    cb.AddJsonFile("appsettings.localdev.json", optional: false);
+                    cb.AddJsonFile("appsettings.localdev.json", optional: true);
                     cb.AddEnvironmentVariables();
                 })
                 .ConfigureServices((hostContext, services) =>
