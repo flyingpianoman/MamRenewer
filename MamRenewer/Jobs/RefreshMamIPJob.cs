@@ -37,6 +37,7 @@ namespace MamRenewer.Jobs
 
             if (_proxyEnabled)
             {
+                _logger.LogDebug("Proxy is enabled, validating if IP is actually different");
                 await ValidateProxiedIPAsync(currentExternalIP);
             }
 

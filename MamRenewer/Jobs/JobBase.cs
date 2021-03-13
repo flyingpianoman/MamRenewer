@@ -12,7 +12,7 @@ namespace MamRenewer.Jobs
 {
     internal class JobBase<T>
     {
-        private const string _ExternalIPCheckUrl = "http://ipinfo.io/ip";
+        private const string _ExternalIPCheckUrl = "https://ipinfo.io/ip";
         protected readonly bool _proxyEnabled;
         protected IHttpClientFactory _httpClientFactory;
         protected ILogger<T> _logger;
