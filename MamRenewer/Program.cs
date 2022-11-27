@@ -32,11 +32,15 @@ namespace MamRenewer
             var configuration = host.Services.GetRequiredService<IConfiguration>();
             Directory.CreateDirectory(configuration.GetValue<string>("MamBot:ScreenshotDir"));
 
+            //Disable retries
+            GlobalJobFilters.Filters.Add(new AutomaticRetryAttribute { Attempts = 0 });
             var recurringJobManager = host.Services.GetRequiredService<Hangfire.IRecurringJobManager>();
             recurringJobManager.AddOrUpdate<RenewMamVipJob>(nameof(RenewMamVipJob),
                 job => job.ExecuteAsync(), Cron.Weekly());
             recurringJobManager.AddOrUpdate<RefreshMamIPJob>(nameof(RefreshMamIPJob),
-                job => job.ExecuteAsync(), Cron.Minutely());
+                job => job.ExecuteAsync(), Cron.Hourly());
+
+            recurringJobManager.Trigger(nameof(RenewMamVipJob));
 
             return host.RunAsync();
         }
@@ -60,9 +64,9 @@ namespace MamRenewer
 
                             return proxyEnabled
                                 ? new HttpClientHandler
-                                    {
-                                        Proxy = new WebProxy(address)
-                                    }
+                                {
+                                    Proxy = new WebProxy(address)
+                                }
                                 : new HttpClientHandler();
                         });
 
@@ -80,22 +84,10 @@ namespace MamRenewer
                     services.AddTransient<PreviousJobInfoRepository>();
                     services.AddTransient<MamBot>();
 
-                    services.AddTransient<IWebDriver>(sp =>
+                    services.AddTransient<WebDriverFactory>(sp =>
                     {
                         var configuration = sp.GetRequiredService<IConfiguration>();
-                        var proxyEnabled = configuration.GetValue<bool>("Proxy:Enabled");
-                        var address = configuration.GetValue<string>("Proxy:Address");
-
-                        var proxySettings = proxyEnabled
-                            ? new Proxy { HttpProxy = address, SslProxy = address, Kind = ProxyKind.Manual }
-                            : null;
-
-                        var capabilities = new FirefoxOptions()
-                        {
-                            Proxy = proxySettings
-                        }.ToCapabilities();
-
-                        return new RemoteWebDriver(configuration.GetValue<Uri>("MamBot:SeleniumHubAddress"), capabilities);
+                        return new WebDriverFactory(sp, configuration);
                     });
                 })
                 .UseConsoleLifetime();

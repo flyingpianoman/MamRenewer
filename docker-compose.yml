@@ -16,6 +16,27 @@ services:
   selenium-firefox-standalone:
     image: selenium/standalone-firefox:4
     shm_size: '2gb'
+    mem_limit: 4g
+    environment:
+      - NODE_MAX_CONCURRENT_SESSIONS=5
+      - SE_NODE_SESSION_TIMEOUT=90
     ports:
       - 4444:4444
       - 5900:5900
+
+  transmission-openvpn:
+    image: haugene/transmission-openvpn
+    container_name: transmission-openvpn
+    privileged: true
+    restart: unless-stopped
+    dns:
+      - 8.8.4.4
+      - 8.8.8.8
+    ports:
+      - "9091:9091"
+      - "8888:8888"
+    environment:
+      - PGID=1000
+      - PUID=1000
+      #add missing settings for vpn proxy
+      

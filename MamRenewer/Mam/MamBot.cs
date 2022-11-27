@@ -14,67 +14,60 @@ namespace MamRenewer.Mam
     class MamBot
     {
         private const string _mamUrl = @"https://www.myanonamouse.net";
-        private readonly IWebDriver _webDriver;
         private readonly string _username;
         private readonly string _password;
-        private readonly ScreenShotter _screenShotter;
 
-        public MamBot(IWebDriver webDriver, 
-            IConfiguration configuration)
+        public MamBot(IConfiguration configuration)
         {
-            _webDriver = webDriver;
             _username = configuration.GetValue<string>("MamBot:Mam:Username");
             _password = configuration.GetValue<string>("MamBot:Mam:Password");
-            _screenShotter = new ScreenShotter(_webDriver, configuration);
         }
 
-        public async Task RefreshIPAsync()
+        public async Task RefreshIPAsync(IWebDriver webDriver)
         {
-            LoadMam();
+            LoadMam(webDriver);
 
-            await LoginAsync();
+            await LoginAsync(webDriver);
         }
 
-        public async Task RenewVipStatusAsync()
+        public async Task RenewVipStatusAsync(IWebDriver webDriver)
         {
-            LoadMam();
+            LoadMam(webDriver);
 
-            await LoginAsync();
+            await LoginAsync(webDriver);
 
-            await NavigateToBonusPointsAsync();
+            await NavigateToBonusPointsAsync(webDriver);
 
-            await PurchaseMaxVipDutationAsync();
-
-            _screenShotter.TakeScreenshot("vipPurchase");
+            await PurchaseMaxVipDutationAsync(webDriver);
         }
 
-        private void LoadMam()
+        private void LoadMam(IWebDriver webDriver)
         {
-            _webDriver.Url = _mamUrl;
-            _webDriver.Navigate();
+            webDriver.Url = _mamUrl;
+            webDriver.Navigate();
         }
 
-        private async Task LoginAsync()
+        private async Task LoginAsync(IWebDriver webDriver)
         {
             var loginPage = new LoginPage();
-            await loginPage.InitializeAsync(_webDriver);
+            await loginPage.InitializeAsync(webDriver);
             loginPage.SetUserName(_username);
             loginPage.SetPassword(_password);
 
             loginPage.ClickLogin();
         }
 
-        private async Task NavigateToBonusPointsAsync()
+        private async Task NavigateToBonusPointsAsync(IWebDriver webDriver)
         {
             var homePage = new HomePage();
-            await homePage.InitializeAsync(_webDriver);
+            await homePage.InitializeAsync(webDriver);
             homePage.NavigateToBonusPoints();
         }
 
-        private async Task PurchaseMaxVipDutationAsync()
+        private async Task PurchaseMaxVipDutationAsync(IWebDriver webDriver)
         {
             var storePage = new StorePage();
-            await storePage.InitializeAsync(_webDriver);
+            await storePage.InitializeAsync(webDriver);
             storePage.ToggleVipSection();
             storePage.PurchaseMaxVipDuration();
         }

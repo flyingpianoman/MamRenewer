@@ -1,5 +1,6 @@
 ﻿using MamRenewer.Mam;
 using MamRenewer.Services;
+using MamRenewer.UINavigation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
@@ -14,38 +15,42 @@ namespace MamRenewer.Jobs
 {
     class RefreshMamIPJob : JobBase<RefreshMamIPJob>
     {
-        private readonly IWebDriver _webDriver;
+        private readonly WebDriverFactory _webDriverFactory;
         private readonly PreviousJobInfoRepository _previousJobInfoRepository;
         private readonly MamBot _mamBot;
 
         public RefreshMamIPJob(PreviousJobInfoRepository previousJobInfoRepository,
             IHttpClientFactory httpClientFactory,
-            IWebDriver webDriver,
+            WebDriverFactory webDriverFactory,
             MamBot mamBot,
             ILogger<RefreshMamIPJob> logger,
             IConfiguration configuration)
             : base(httpClientFactory, logger, configuration)
         {
-            _webDriver = webDriver;
+            _webDriverFactory = webDriverFactory;
             _previousJobInfoRepository = previousJobInfoRepository;
             _mamBot = mamBot;
         }
 
         public async Task ExecuteAsync()
         {
+            await ConcurrencyLock.WaitAsync();
+            var webDriver = _webDriverFactory.Create();
+
             try
             {
-                await ExecuteCoreAsync();
+                await ExecuteCoreAsync(webDriver);
             }
             finally
             {
-                _webDriver.Quit();
+                webDriver.Quit();
+                ConcurrencyLock.Release();
             }
         }
 
-        private async Task ExecuteCoreAsync()
+        private async Task ExecuteCoreAsync(IWebDriver webDriver)
         {
-            var currentExternalIP = GetCurrentIP(_webDriver);
+            var currentExternalIP = GetCurrentIP(webDriver);
 
             if (_proxyEnabled)
             {
@@ -65,7 +70,7 @@ namespace MamRenewer.Jobs
             _logger.LogInformation("Current external IP '{0}' differs from last used IP {1}. Logging in to MAM to update IP",
                 currentExternalIP, lastUsedIp);
 
-            await _mamBot.RefreshIPAsync();
+            await _mamBot.RefreshIPAsync(webDriver);
 
             _logger.LogInformation("IP refreshed");
 

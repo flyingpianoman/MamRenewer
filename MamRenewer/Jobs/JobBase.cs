@@ -6,12 +6,14 @@ using System;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MamRenewer.Jobs
 {
     internal class JobBase<T>
     {
+        public readonly static SemaphoreSlim ConcurrencyLock = new SemaphoreSlim(1);
         private const string _ExternalIPCheckUrl = "https://ipinfo.io/ip";
         protected readonly bool _proxyEnabled;
         protected IHttpClientFactory _httpClientFactory;
@@ -38,8 +40,9 @@ namespace MamRenewer.Jobs
                 .Execute(() =>
                 {
                     var bodyEls = webDriver.FindElements(By.CssSelector("body"));
+                    var src = webDriver.PageSource;
                     var body = bodyEls.FirstOrDefault()?.Text?.Trim();
-                    if (body != null && !Regex.IsMatch(body, @"^\d+\.\d+\.\d+\.\d+$"))
+                    if (body == null || !Regex.IsMatch(body, @"^\d+\.\d+\.\d+\.\d+$"))
                     {
                         throw new PageHelper.RetryException();
                     }
